@@ -1,66 +1,115 @@
 import json
 import numpy as np
 
-import configuration
-
-from model.residual_nn import Residual_CNN
-import model.mcts
+from code.model.residual_nn import Residual_CNN
+import code.mcts.mcts as mc
+from code.constants import sort_cards, encode_binary
+from code.cnn_setup import INPUT_DIMENSION
+from code.constants import CARDS
+from code.rules import possible_cards
+from code.game.game import evaluate_trick
 
 class ModelPlayer:
-    def __init__(self, action_size, cpuct, mcts_simulations, model_file=None):
+    def __init__(self, action_size, cpuct, mcts_simulations, config, model_file=None):
         self.action_size = action_size
         self.cpuct = cpuct
         self.MCTSsimulations = mcts_simulations
+        self.config = config
         self.model = self.create_model(model_file)
         self.mcts = None
-        self.input_state = self.create_input_state()
 
     def create_model(self, model_file):
         if model_file is not None:
             # Load it from file
             print("Not implemented")
             return
-        return Residual_CNN()
+        return Residual_CNN(self.config)
 
-    def create_input_state(self):
-        return np.reshape(np.zeros(32 * 3 * 11), (32, 3, 11))
+    def take_action(card, leaf):
+        current_trick = leaf.current_trick.append(card)
+        track = leaf.track.append(card)
+        current_position = leaf.current_position + 1
 
-    def transform_to_state(self, current_position, player_pos, cards, current_trick, track):
+        if len(current_trick) == 3:
+            current_position = evaluate_trick(leaf.winner, leaf.current_trick, leaf.game_type)
+            current_trick = []
+
+        state, state_id, allowed_actions = self.transform_to_state(
+            leaf.game_type, current_position, leaf.player_pos,
+        )
+
+
+
+    def allowed_actions(self, cards, current_trick, game_type):
+        allowed_cards = possible_cards(cards, current_trick, game_type)        
+        allowed_actions = np.zeros(32, dtype=bool)
+        for c in allowed_cards:
+            allowed_actions[CARDS.index(c)] = True
+        return allowed_actions
+
+    def transform_to_state(self, game_type, current_position, player_pos, cards, current_trick, track):
         state = list()
         for i in range(3):
             if i == player_pos:
                 state.append([1] * 32)
             else:
                 state.append([0] * 32)
-        import ipdb; ipdb.set_trace()
-        for card in track:
-            print(card)
+        
+        for i in range(3):
+            if i == current_position:
+                state.append([1] * 32)
+            else:
+                state.append([0] * 32)
 
-    def build_mcts(self, state):
-        self.root = mc.Node(state)
+        for card in sort_cards(cards):
+            state.append(encode_binary([card]))
+        for card in range(10 - len(cards)):
+            state.append([0] * 32)
+
+        for card in track:
+            state.append(encode_binary([card]))
+        for card in range(10 - len(track)):
+            state.append([0] * 32)
+
+        for card in current_trick:
+            state.append(encode_binary([card]))
+        for card in range(3 - len(current_trick)):
+            state.append([0] * 32)
+
+        state_id = ('').join([str(i) for sublist in state for i in sublist])
+        allowed_actions = self.allowed_actions(cards, current_trick, game_type)
+
+        return state, state_id, allowed_actions        
+
+    def build_mcts(self, state_id, state, allowed_actions):
+        self.root = mc.Node(state_id, state, allowed_actions)
         self.mcts = mc.MCTS(self.root, self.cpuct)
 
-    def change_root_mcts(self, state):
-        self.mcts.root = self.mcts.tree[state.id]
+    def change_root_mcts(self, state_id):
+        self.mcts.root = self.mcts.tree[state_id]
 
     def simulate(self):
         # MOVE THE LEAF NODE
-        leaf, value, done, breadcrumbs = self.mcts.moveToLeaf()
+        leaf, value, done, breadcrumbs = self.mcts.move_to_leaf()
 
         # EVALUATE THE LEAF NODE
-        value, breadcrumbs = self.evaluateLeaf(leaf, value, done, breadcrumbs)
+        value, breadcrumbs = self.evaluate_leaf(leaf, value, done, breadcrumbs)
 
         # BACKFILL THE VALUE THROUGH THE TREE
         self.mcts.backFill(leaf, value, breadcrumbs)
 
-    def choose_card(self, current_position, player_pos, cards, current_trick, track, tau=1):
-        state = self.transform_to_state(current_position, player_pos, cards, current_trick, track)
-        if self.mcts is None or state.id not in self.mcts.tree:
-            self.build_mcts(state)
+    def choose_card(self, winner, game_type, current_position, player_pos, cards, current_trick, track, tau=1):
+        state, state_id, allowed_actions = self.transform_to_state(
+            game_type, current_position, player_pos, cards, current_trick, track
+        )
+        if self.mcts is None or state_id not in self.mcts.tree:
+            self.build_mcts(
+                state_id, state, allowed_actions, winner, game_type, 
+                current_position, player_pos, cards, current_trick, track
+            )
         else:
-            self.change_root_mcts(state)
+            self.change_root_mcts(state_id)
 
-        # run the simulation
         for sim in range(self.MCTSsimulations):
             self.simulate()
 
@@ -76,36 +125,33 @@ class ModelPlayer:
 
         return (action, pi, value, NN_value)
 
-    def get_preds(self, state):
+    def get_preds(self, leaf):
         # predict the leaf
-        inputToModel = np.array([self.model.convertToModelInput(state)])
+        input_to_model = np.array([np.reshape(leaf.state, (32, 29, 1))])
 
-        preds = self.model.predict(inputToModel)
+        preds = self.model.predict(input_to_model)
         value_array = preds[0]
         logits_array = preds[1]
         value = value_array[0]
         logits = logits_array[0]
 
-        allowedActions = state.allowedActions
-
-        mask = np.ones(logits.shape, dtype=bool)
-        mask[allowedActions] = False
-        logits[mask] = -100
+        allowed_actions = leaf.allowed_actions
+        logits[allowed_actions] = -100
 
         # SOFTMAX
         odds = np.exp(logits)
-        probs = odds / np.sum(odds)  # put this just before the for?
+        probs = odds / np.sum(odds)
 
-        return ((value, probs, allowedActions))
+        return value, probs
 
-    def evaluateLeaf(self, leaf, value, done, breadcrumbs):
+    def evaluate_leaf(self, leaf, value, done, breadcrumbs):
         if done == 0:
-            value, probs, allowedActions = self.get_preds(leaf.state)
+            value, probs = self.get_preds(leaf)
 
-            probs = probs[allowedActions]
+            probs = probs[leaf.allowed_actions]
 
-            for idx, action in enumerate(allowedActions):
-                newState, _, _ = leaf.state.takeAction(action)
+            for idx, action in enumerate(leaf.allowed_actions):
+                newState, _, _ = self.take_action(action, leaf)
                 if newState.id not in self.mcts.tree:
                     node = mc.Node(newState)
                     self.mcts.addNode(node)

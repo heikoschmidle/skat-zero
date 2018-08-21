@@ -6,7 +6,7 @@ from keras.layers import Input, Dense, Conv2D, Flatten, BatchNormalization, Leak
 from keras.optimizers import SGD
 from keras import regularizers
 
-import configuration
+from code import cnn_setup
 
 
 def softmax_cross_entropy_with_logits(y_true, y_pred):
@@ -24,13 +24,15 @@ def softmax_cross_entropy_with_logits(y_true, y_pred):
     return loss
 
 class Residual_CNN():
-    def __init__(self):
-        self.reg_const = configuration.REGULARIZATION
-        self.learning_rate = configuration.LEARNING_RATE
-        self.momentum = configuration.MOMENTUM
-        self.input_dim = configuration.INPUT_DIMENSION
-        self.output_dim = configuration.OUTPUT_DIMENSION
-        self.hidden_layers = configuration.HIDDEN_LAYERS
+    def __init__(self, config):
+        self.reg_const = config['REGULARIZATION']
+        self.learning_rate = config['LEARNING_RATE']
+        self.momentum = config['MOMENTUM']
+
+        self.input_dim = cnn_setup.INPUT_DIMENSION
+        self.output_dim = cnn_setup.OUTPUT_DIMENSION
+        self.hidden_layers = cnn_setup.HIDDEN_LAYERS
+
         self.num_layers = len(self.hidden_layers)
 
         self.model = self._build_model()

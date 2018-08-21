@@ -1,4 +1,4 @@
-from constants import CARDS, NULL_CARDS, POINTS, SUIT_MAP, sort_cards
+from code.constants import CARDS, NULL_CARDS, POINTS, SUIT_MAP, sort_cards
 
 class Game:
     def __init__(self, init_game, players):
@@ -20,6 +20,8 @@ class Game:
                 player = self.players[current_position]
                 cards_left = 10 - trick_number
                 card = player.choose_card(
+                    winner,
+                    self.game_type,
                     current_position, 
                     self.player_pos,
                     self.cards[current_position * cards_left: (current_position + 1) * cards_left],

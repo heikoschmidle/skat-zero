@@ -89,3 +89,9 @@ def sort_cards(cards):
         if c in cards:
             sorted_cards.append(c)
     return sorted_cards
+
+def encode_binary(cards):
+    res = [0] * 32
+    for c in cards:
+        res[CARDS.index(c)] = 1
+    return res

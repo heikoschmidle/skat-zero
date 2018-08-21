@@ -1,12 +1,22 @@
 import numpy as np
-import config
+
+EPSILON = 0.2
+ALPHA = 0.8
 
 
 class Node():
-    def __init__(self, state):
+    def __init__(self, state_id, state, allowed_actions, winner, game_type, 
+                 current_position, player_pos, cards, current_trick, track):
+        self.id = state_id
         self.state = state
-        self.player_turn = state.player_turn
-        self.id = state.id
+        self.allowed_actions = allowed_actions
+        self.winner = winner
+        self.game_type = game_type
+        self.current_position = current_position
+        self.player_pos = player_pos
+        self.cards = cards
+        self.current_trick = current_trick
+        self.track = track
         self.edges = []
 
     def is_leaf(self):
@@ -17,10 +27,9 @@ class Node():
 
 class Edge():
     def __init__(self, in_node, out_node, prior, action):
-        self.id = in_node.state.id + '|' + out_node.state.id
+        self.id = in_node.id + '|' + out_node.id
         self.in_node = in_node
         self.out_node = out_node
-        self.player_turn = in_node.state.player_turn
         self.action = action
         self.stats = {
             'N': 0,
@@ -50,11 +59,11 @@ class MCTS():
             maxQU = -99999
 
             if current_node == self.root:
-                epsilon = config.EPSILON
-                nu = np.random.dirichlet([config.ALPHA] * len(current_node.edges))
+                epsilon = EPSILON
+                nu = np.random.dirichlet([ALPHA] * len(current_node.edges))
             else:
                 epsilon = 0
-                nu = [0] * len(currentNode.edges)
+                nu = [0] * len(current_node.edges)
 
             Nb = 0
             for action, edge in current_node.edges:
@@ -72,17 +81,16 @@ class MCTS():
                     simulation_action = action
                     simulation_edge = edge
 
-            new_state, value, done = current_node.state.take_action(simulation_action)
+            _, value, done = current_node.state.take_action(simulation_action)
             current_node = simulation_edge.out_node
             breadcrumbs.append(simulation_edge)
-
         return current_node, value, done, breadcrumbs
 
-    def backFill(self, leaf, value, breadcrumbs):
-            currentPlayer = leaf.state.playerTurn
+    def back_fill(self, leaf, value, breadcrumbs):
+            current_player = leaf.state.playerTurn
             for edge in breadcrumbs:
-                playerTurn = edge.playerTurn
-                if playerTurn == currentPlayer:
+                player_turn = edge.player_turn
+                if player_turn == current_player:
                     direction = 1
                 else:
                     direction = -1
@@ -91,5 +99,5 @@ class MCTS():
                 edge.stats['W'] = edge.stats['W'] + value * direction
                 edge.stats['Q'] = edge.stats['W'] / edge.stats['N']
 
-    def addNode(self, node):
+    def add_node(self, node):
         self.tree[node.id] = node

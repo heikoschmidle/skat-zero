@@ -1,4 +1,4 @@
-from constants import SUIT_MAP
+from code.constants import SUIT_MAP
 
 
 def possible_cards(cards, current_table, game_type):
