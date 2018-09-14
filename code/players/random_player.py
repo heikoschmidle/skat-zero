@@ -8,6 +8,6 @@ class RandomPlayer:
     def __init__(self):
         pass
 
-    def choose_card(self, current_pos, cards, current_trick, track, player_pos, game_type):
+    def choose_card(self, cards, current_trick, game_type):
         return random.choice(possible_cards(cards, current_trick, game_type))
-        
+

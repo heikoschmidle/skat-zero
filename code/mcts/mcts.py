@@ -5,8 +5,9 @@ ALPHA = 0.8
 
 
 class Node():
-    def __init__(self, state_id, state, allowed_actions, winner, game_type, 
-                 current_position, player_pos, cards, current_trick, track):
+    def __init__(self, state_id, state, allowed_actions, winner, game_type,
+                 current_position, player_pos, cards, current_trick, track,
+                 opp_one_cards, opp_two_cards):
         self.id = state_id
         self.state = state
         self.allowed_actions = allowed_actions
@@ -17,6 +18,8 @@ class Node():
         self.cards = cards
         self.current_trick = current_trick
         self.track = track
+        self.opp_one_cards = opp_one_cards
+        self.opp_two_cards = opp_two_cards
         self.edges = []
 
     def is_leaf(self):
@@ -71,7 +74,7 @@ class MCTS():
 
             for idx, (action, edge) in enumerate(current_node.edges):
                 U = self.cpuct * \
-                    ((1-epsilon) * edge.stats['P'] + epsilon * nu[idx]) * \
+                    ((1 - epsilon) * edge.stats['P'] + epsilon * nu[idx]) * \
                     np.sqrt(Nb) / (1 + edge.stats['N'])
 
                 Q = edge.stats['Q']

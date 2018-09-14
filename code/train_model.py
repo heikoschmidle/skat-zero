@@ -10,7 +10,7 @@ from code.game.game import Game
 
 def main(job):
     games = []
-    with gzip.open(job['GAMES_FILE'], 'r') as f: 
+    with gzip.open(job['GAMES_FILE'], 'r') as f:
         for line in f:
             games.append(json.loads(line.decode()))
 
@@ -28,8 +28,9 @@ def main(job):
             score[w] += 1
         print(score)
 
+
 def debug():
-    filename = '/Users/heikoschmidle/projects/sauspiel/skat-zero/code/configuration.yml'
+    filename = '/home/heiko/Projects/heiko/skat-zero/code/configuration.yml'
     with open(filename) as f:
         job = yaml.load(f)
     main(job)

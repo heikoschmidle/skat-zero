@@ -13,18 +13,29 @@ class Game:
         track = []
         for trick_number in range(10):
             current_trick = []
-            for i in range(3):    
+            for i in range(3):
                 current_position = winner + i
                 if current_position > 2:
                     current_position -= 3
+                if current_position = 0:
+                    opp_one_pos = 1
+                    opp_two_pos = 2
+                if current_position = 1:
+                    opp_one_pos = 2
+                    opp_two_pos = 1
+                if current_position = 2:
+                    opp_one_pos = 0
+                    opp_two_pos = 1
                 player = self.players[current_position]
                 cards_left = 10 - trick_number
                 card = player.choose_card(
                     winner,
                     self.game_type,
-                    current_position, 
+                    current_position,
                     self.player_pos,
                     self.cards[current_position * cards_left: (current_position + 1) * cards_left],
+                    self.cards[opp_one_pos * cards_left: (opp_one_pos + 1) * cards_left],
+                    self.cards[opp_two_pos * cards_left: (opp_two_pos + 1) * cards_left],
                     current_trick,
                     track,
                     self.player_pos
@@ -71,7 +82,7 @@ def evaluate_grand_trick(current_trick):
                         winner_card = card
 
     return current_trick.index(winner_card)
-            
+
 
 def evaluate_null_trick(current_trick):
     winner_card = current_trick[0]
