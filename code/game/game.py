@@ -17,15 +17,6 @@ class Game:
                 current_position = winner + i
                 if current_position > 2:
                     current_position -= 3
-                if current_position = 0:
-                    opp_one_pos = 1
-                    opp_two_pos = 2
-                if current_position = 1:
-                    opp_one_pos = 2
-                    opp_two_pos = 1
-                if current_position = 2:
-                    opp_one_pos = 0
-                    opp_two_pos = 1
                 player = self.players[current_position]
                 cards_left = 10 - trick_number
                 card = player.choose_card(
@@ -34,11 +25,10 @@ class Game:
                     current_position,
                     self.player_pos,
                     self.cards[current_position * cards_left: (current_position + 1) * cards_left],
-                    self.cards[opp_one_pos * cards_left: (opp_one_pos + 1) * cards_left],
-                    self.cards[opp_two_pos * cards_left: (opp_two_pos + 1) * cards_left],
                     current_trick,
                     track,
-                    self.player_pos
+                    self.player_pos,
+                    self.points
                 )
                 current_trick.append(card)
                 track.append(card)

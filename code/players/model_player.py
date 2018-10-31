@@ -1,22 +1,35 @@
 import numpy as np
+import random
+from itertools import cycle
 
 from code.model.residual_nn import Residual_CNN
 import code.mcts.mcts as mc
+from code.mcts.game_state import State, take_action
 from code.constants import sort_cards, encode_binary
 from code.constants import CARDS
 from code.rules import possible_cards
-from code.gamm.game import evaluate_trick
+from code.game.game import evaluate_trick
 from code.players.random_player import RandomPlayer
+from code.mcts.game_state import State
 
 
 class ModelPlayer:
     def __init__(self, action_size, cpuct, mcts_simulations, config, model_file=None):
         self.action_size = action_size
         self.cpuct = cpuct
-        self.MCTSsimulations = mcts_simulations
+        self.mcts_simulations = mcts_simulations
         self.config = config
         self.model = self.create_model(model_file)
         self.mcts = None
+        self.simulation_position = None
+        self.current_trick = None
+        self.current_position = None
+        self.player_pos = None
+        self.track= None
+        self.game_type = None
+        self.winner = None
+        self.points = None
+
 
     def create_model(self, model_file):
         if model_file is not None:
@@ -25,72 +38,8 @@ class ModelPlayer:
             return
         return Residual_CNN(self.config)
 
-    def opponent_choose_card(self, cards, current_trick, game_type):
-        return RandomPlayer().choose_card(cards, current_trick, game_type)
-
-    def take_action(self, card, leaf):
-        leaf.current_trick.append(card)
-        leaf.track.append(card)
-        leaf.current_position + 1
-
-        opp_one_card = self.opponent_choose_card(leaf.opp_one_cards, leaf.current_trick, leaf.game_type)
-        opp_two_card = self.opponent_choose_card(leaf.opp_two_cards, leaf.current_trick, leaf.game_type)
-
-        if len(leaf.current_trick) == 3:
-            current_position = evaluate_trick(leaf.winner, leaf.current_trick, leaf.game_type)
-            current_trick = []
-
-        state, state_id, allowed_actions = self.transform_to_state(
-            leaf.game_type, current_position, leaf.player_pos,
-        )
-
-    def allowed_actions(self, cards, current_trick, game_type):
-        allowed_cards = possible_cards(cards, current_trick, game_type)
-        allowed_actions = np.zeros(32, dtype=bool)
-        for c in allowed_cards:
-            allowed_actions[CARDS.index(c)] = True
-        return allowed_actions
-
-    def transform_to_state(self, game_type, current_position, player_pos, cards, current_trick, track):
-        state = list()
-        for i in range(3):
-            if i == player_pos:
-                state.append([1] * 32)
-            else:
-                state.append([0] * 32)
-
-        for i in range(3):
-            if i == current_position:
-                state.append([1] * 32)
-            else:
-                state.append([0] * 32)
-
-        for card in sort_cards(cards):
-            state.append(encode_binary([card]))
-        for card in range(10 - len(cards)):
-            state.append([0] * 32)
-
-        for card in track:
-            state.append(encode_binary([card]))
-        for card in range(10 - len(track)):
-            state.append([0] * 32)
-
-        for card in current_trick:
-            state.append(encode_binary([card]))
-        for card in range(3 - len(current_trick)):
-            state.append([0] * 32)
-
-        state_id = ('').join([str(i) for sublist in state for i in sublist])
-        allowed_actions = self.allowed_actions(cards, current_trick, game_type)
-
-        return state, state_id, allowed_actions
-
-    def build_mcts(self, state_id, state, allowed_actions, winner, game_type,
-                   current_position, player_pos, cards, current_trick, track):
-        self.root = mc.Node(
-            state_id, state, allowed_actions, winner, game_type,
-            current_position, player_pos, cards, current_trick, track
-        )
+    def build_mcts(self, state):
+        self.root = mc.Node(state)
         self.mcts = mc.MCTS(self.root, self.cpuct)
 
     def change_root_mcts(self, state_id):
@@ -101,30 +50,59 @@ class ModelPlayer:
         leaf, value, done, breadcrumbs = self.mcts.move_to_leaf()
 
         # EVALUATE THE LEAF NODE
-        value, breadcrumbs = self.evaluate_leaf(leaf, value, done, breadcrumbs)
+        value = self.evaluate_leaf(leaf, value, done)
 
         # BACKFILL THE VALUE THROUGH THE TREE
-        self.mcts.backFill(leaf, value, breadcrumbs)
+        self.mcts.back_fill(leaf, value, breadcrumbs)
+
+    def opponents_card_estimate(self, track):
+        # Add here an estimate for the cards of the opponent
+        all_cards = CARDS.copy()
+        for c in track:
+            all_cards.remove(c)
+        random.shuffle(all_cards)
+        num_cards = int(len(all_cards) / 2)
+
+        opp_one_cards = all_cards[:num_cards]
+        opp_two_cards = all_cards[num_cards:]
+        if self.start_position == 1:
+            opp_two_cards = all_cards[num_cards - 1:]
+
+        return opp_one_cards, opp_two_cards
+
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
-                    opp_one_cards, opp_two_cards, current_trick, track, tau=1):
-        state, state_id, allowed_actions = self.transform_to_state(
-            game_type, current_position, player_pos, cards, current_trick, track
-        )
-        if self.mcts is None or state_id not in self.mcts.tree:
-            self.build_mcts(
-                state_id, state, allowed_actions, winner, game_type,
-                current_position, player_pos, cards, current_trick, track,
-                opp_one_cards, opp_two_cards
-            )
-        else:
-            self.change_root_mcts(state_id)
+                    current_trick, track, points, tau=1):
 
-        for sim in range(self.MCTSsimulations):
+        self.start_position = current_position 
+        opp_one_cards, opp_two_cards = self.opponents_card_estimate(track)
+        simulation_cards = {0: None, 1: None, 2: None}
+        simulation_cards[current_position] = cards
+        pool = cycle([0, 1, 2])
+        for p in pool:
+            if p == self.start_position:
+                simulation_cards[next(pool)] = opp_one_cards
+                simulation_cards[next(pool)] = opp_two_cards
+                break
+
+        self.points = points
+
+        state = State(winner, game_type, current_position, player_pos, simulation_cards, 
+                      current_trick, track, points) 
+
+        state.transform_to_state()
+
+        if self.mcts is None or state.id not in self.mcts.tree:
+            self.build_mcts(state)
+        else:
+            self.change_root_mcts(state.id)
+
+        for _ in range(self.mcts_simulations):
             self.simulate()
+            import ipdb; ipdb.set_trace()
 
         # get action values
-        pi, values = self.getAV(1)
+        pi, values = self.get_av(1)
 
         # pick the action
         action, value = self.chooseAction(pi, values, tau)
@@ -137,7 +115,7 @@ class ModelPlayer:
 
     def get_preds(self, leaf):
         # predict the leaf
-        input_to_model = np.array([np.reshape(leaf.state, (32, 29, 1))])
+        input_to_model = np.array([np.reshape(leaf.state.state, (32, 29, 1))])
 
         preds = self.model.predict(input_to_model)
         value_array = preds[0]
@@ -154,27 +132,27 @@ class ModelPlayer:
 
         return value, probs
 
-    def evaluate_leaf(self, leaf, value, done, breadcrumbs):
-        if done == 0:
-            value, probs = self.get_preds(leaf)
+    def evaluate_leaf(self, leaf, value, done):
+        if done:
+            return value
 
-            probs = probs[leaf.allowed_actions]
+        value, probs = self.get_preds(leaf)
 
-            for idx, allowed in enumerate(leaf.allowed_actions):
-                if allowed is True:
-                    new_state, _, _ = self.take_action(CARDS[idx], leaf)
-                    if new_state.id not in self.mcts.tree:
-                        node = mc.Node(new_state)
-                        self.mcts.addNode(node)
-                    else:
-                        node = self.mcts.tree[new_state.id]
+        for idx, allowed in enumerate(leaf.allowed_actions):
+            if allowed:
+                value, done, new_state = take_action(leaf.state, CARDS[idx])
+                if new_state.id not in self.mcts.tree:
+                    node = mc.Node(new_state)
+                    self.mcts.add_node(node)
+                else:
+                    node = self.mcts.tree[new_state.id]
 
-                    newEdge = mc.Edge(leaf, node, probs[idx], action)
-                    leaf.edges.append((action, newEdge))
+                new_edge = mc.Edge(leaf, node, probs[idx], CARDS[idx], self.current_position)
+                leaf.edges.append((CARDS[idx], new_edge))
 
-        return (value, breadcrumbs)
+        return value
 
-    def getAV(self, tau):
+    def get_av(self, tau):
         edges = self.mcts.root.edges
         pi = np.zeros(self.action_size, dtype=np.integer)
         values = np.zeros(self.action_size, dtype=np.float32)

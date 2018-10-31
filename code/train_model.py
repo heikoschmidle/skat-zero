@@ -30,7 +30,7 @@ def main(job):
 
 
 def debug():
-    filename = '/home/heiko/Projects/heiko/skat-zero/code/configuration.yml'
+    filename = '/Users/heikoschmidle/projects/sauspiel/skat-zero/code/configuration.yml'
     with open(filename) as f:
         job = yaml.load(f)
     main(job)

@@ -2,7 +2,7 @@ import random
 import requests
 import json
 
-from rules import possible_cards
+from code.rules import possible_cards
 
 class RandomPlayer:
     def __init__(self):
