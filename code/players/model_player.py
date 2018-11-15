@@ -39,7 +39,7 @@ class ModelPlayer:
         return Residual_CNN(self.config)
 
     def build_mcts(self, state):
-        self.root = mc.Node(state)
+        self.root = mc.Node(state, 0.0, False)
         self.mcts = mc.MCTS(self.root, self.cpuct)
 
     def change_root_mcts(self, state_id):
@@ -47,26 +47,36 @@ class ModelPlayer:
 
     def simulate(self):
         # MOVE THE LEAF NODE
-        leaf, value, done, breadcrumbs = self.mcts.move_to_leaf()
+        leaf, breadcrumbs = self.mcts.move_to_leaf()
 
         # EVALUATE THE LEAF NODE
-        value = self.evaluate_leaf(leaf, value, done)
+        value = self.evaluate_leaf(leaf)
 
         # BACKFILL THE VALUE THROUGH THE TREE
-        self.mcts.back_fill(leaf, value, breadcrumbs)
+        self.mcts.back_fill(leaf, breadcrumbs)
 
-    def opponents_card_estimate(self, track):
+        # import ipdb; ipdb.set_trace()
+
+    def opponents_card_estimate(self, track, cards, current_trick):
         # Add here an estimate for the cards of the opponent
+        random.seed(1)
         all_cards = CARDS.copy()
-        for c in track:
+        for c in track + cards:
             all_cards.remove(c)
         random.shuffle(all_cards)
-        num_cards = int(len(all_cards) / 2)
 
-        opp_one_cards = all_cards[:num_cards]
-        opp_two_cards = all_cards[num_cards:]
-        if self.start_position == 1:
-            opp_two_cards = all_cards[num_cards - 1:]
+        if len(current_trick) == 0:
+            num_cards_one = len(cards)
+            num_cards_two = len(cards)
+        if len(current_trick) == 1:
+            num_cards_one = len(cards) - 1
+            num_cards_two = len(cards)
+        if len(current_trick) == 2:
+            num_cards_one = len(cards) - 1
+            num_cards_two = len(cards) - 1
+
+        opp_one_cards = all_cards[:num_cards_one]
+        opp_two_cards = all_cards[num_cards_one:(num_cards_one + num_cards_two)]
 
         return opp_one_cards, opp_two_cards
 
@@ -75,7 +85,7 @@ class ModelPlayer:
                     current_trick, track, points, tau=1):
 
         self.start_position = current_position 
-        opp_one_cards, opp_two_cards = self.opponents_card_estimate(track)
+        opp_one_cards, opp_two_cards = self.opponents_card_estimate(track, cards, current_trick)
         simulation_cards = {0: None, 1: None, 2: None}
         simulation_cards[current_position] = cards
         pool = cycle([0, 1, 2])
@@ -97,9 +107,9 @@ class ModelPlayer:
         else:
             self.change_root_mcts(state.id)
 
-        for _ in range(self.mcts_simulations):
+        for _ in range(10000):  #self.mcts_simulations):
             self.simulate()
-            import ipdb; ipdb.set_trace()
+            # import ipdb; ipdb.set_trace()
 
         # get action values
         pi, values = self.get_av(1)
@@ -107,15 +117,15 @@ class ModelPlayer:
         # pick the action
         action, value = self.chooseAction(pi, values, tau)
 
-        nextState, _, _ = state.takeAction(action)
+        next_state, _, _ = take_action(state, action)
 
-        nn_value = -self.get_preds(nextState)[0]
+        nn_value = -self.get_preds(next_state)[0]
 
         return (action, pi, value, nn_value)
 
     def get_preds(self, leaf):
         # predict the leaf
-        input_to_model = np.array([np.reshape(leaf.state.state, (32, 29, 1))])
+        input_to_model = np.array([np.reshape(leaf.state.state, (32, 48, 1))])
 
         preds = self.model.predict(input_to_model)
         value_array = preds[0]
@@ -132,23 +142,32 @@ class ModelPlayer:
 
         return value, probs
 
-    def evaluate_leaf(self, leaf, value, done):
-        if done:
-            return value
+    def evaluate_leaf(self, leaf):
+        if leaf.done:
+            return leaf.value
 
         value, probs = self.get_preds(leaf)
 
         for idx, allowed in enumerate(leaf.allowed_actions):
             if allowed:
-                value, done, new_state = take_action(leaf.state, CARDS[idx])
+                new_value, new_done, new_state = take_action(leaf.state, CARDS[idx])
+                if new_done:
+                    print('FINISHED', new_value)
+                    import ipdb; ipdb.set_trace()
+                    leaf.done = new_done
+                    leaf.value = new_value
+                    return new_value
                 if new_state.id not in self.mcts.tree:
-                    node = mc.Node(new_state)
+                    node = mc.Node(new_state, value, new_done)
                     self.mcts.add_node(node)
+                    print(len(self.mcts.tree))
                 else:
                     node = self.mcts.tree[new_state.id]
+                    print('old')
+                    # import ipdb; ipdb.set_trace()
 
                 new_edge = mc.Edge(leaf, node, probs[idx], CARDS[idx], self.current_position)
-                leaf.edges.append((CARDS[idx], new_edge))
+                leaf.edges.append(new_edge)
 
         return value
 

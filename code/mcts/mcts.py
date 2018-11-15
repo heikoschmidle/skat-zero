@@ -1,17 +1,21 @@
 import numpy as np
 
 
+from code.mcts.game_state import take_action
+
 EPSILON = 0.2
 ALPHA = 0.8
 
 
 class Node():
-    def __init__(self, state):
+    def __init__(self, state, value, done):
         self.id = state.id
         self.current_position = state.current_position
         self.state = state
         self.allowed_actions = self.state.actions
         self.edges = []
+        self.value = value
+        self.done = done
 
     def is_leaf(self):
         if len(self.edges) > 0:
@@ -47,8 +51,6 @@ class MCTS():
     def move_to_leaf(self):
         breadcrumbs = []
         current_node = self.root
-        done = False
-        value = 0
 
         while not current_node.is_leaf():
             maxQU = -99999
@@ -61,10 +63,10 @@ class MCTS():
                 nu = [0] * len(current_node.edges)
 
             Nb = 0
-            for action, edge in current_node.edges:
+            for edge in current_node.edges:
                 Nb = Nb + edge.stats['N']
 
-            for idx, (action, edge) in enumerate(current_node.edges):
+            for idx,  edge in enumerate(current_node.edges):
                 U = self.cpuct * \
                     ((1 - epsilon) * edge.stats['P'] + epsilon * nu[idx]) * \
                     np.sqrt(Nb) / (1 + edge.stats['N'])
@@ -73,16 +75,17 @@ class MCTS():
 
                 if Q + U > maxQU:
                     maxQU = Q + U
-                    simulation_action = action
                     simulation_edge = edge
+                # import ipdb; ipdb.set_trace()
 
-            value, done, _, _ = current_node.state.take_action(simulation_action)
             current_node = simulation_edge.out_node
             breadcrumbs.append(simulation_edge)
-            import ipdb; ipdb.set_trace()
-        return current_node, value, done, breadcrumbs
+        
+        # import ipdb; ipdb.set_trace()
 
-    def back_fill(self, leaf, value, breadcrumbs):
+        return current_node, breadcrumbs
+
+    def back_fill(self, leaf, breadcrumbs):
         current_player = leaf.current_position
         for edge in breadcrumbs:
             player_turn = edge.in_node.current_position
@@ -92,7 +95,7 @@ class MCTS():
                 direction = -1
 
             edge.stats['N'] = edge.stats['N'] + 1
-            edge.stats['W'] = edge.stats['W'] + value * direction
+            edge.stats['W'] = edge.stats['W'] + leaf.value * direction
             edge.stats['Q'] = edge.stats['W'] / edge.stats['N']
 
     def add_node(self, node):

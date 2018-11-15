@@ -27,7 +27,6 @@ class Game:
                     self.cards[current_position * cards_left: (current_position + 1) * cards_left],
                     current_trick,
                     track,
-                    self.player_pos,
                     self.points
                 )
                 current_trick.append(card)

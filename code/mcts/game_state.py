@@ -37,16 +37,16 @@ class State:
                 self.state.append([1] * 32)
             else:
                 self.state.append([0] * 32)
-
         cards = self.all_cards[self.current_position]
         for card in sort_cards(cards):
             self.state.append(encode_binary([card]))
         for card in range(10 - len(cards)):
             self.state.append([0] * 32)
 
-        for card in self.track:
+        track = self.track[:-len(self.current_trick)]
+        for card in track:
             self.state.append(encode_binary([card]))
-        for card in range(10 - len(self.track)):
+        for card in range(29 - len(track)):
             self.state.append([0] * 32)
 
         for card in self.current_trick:
@@ -69,28 +69,31 @@ def take_action(state, card):
     new_state = copy.deepcopy(state)
     new_state.current_trick.append(card)
     new_state.track.append(card)
-    new_state.all_cards[new_state.current_position].remove(card)
+    new_state.all_cards[state.current_position].remove(card)
 
     value = 0
     done = False
-    if len(new_state.track) == len(CARDS):
+    if len(new_state.track) == 30:
         winners = evaluate_game(new_state.points, new_state.player_pos, new_state.game_type)
-        if new_state.current_position in winners:
-            value = new_state.points[new_state.current_position]
+        print("WINNERS", winners)
+        value = sum([new_state.points[p] for p in winners])
         done = True
         return value, done, None
 
     if len(new_state.current_trick) == 3:
         winner = evaluate_trick(new_state.winner, new_state.current_trick, new_state.game_type)
-
         for c in new_state.current_trick:
             if c[1] in POINTS:
                 new_state.points[winner] += POINTS[c[1]]
         new_state.current_position = winner
+        new_state.winner = winner
+        new_state.current_trick = []
     else:
         new_state.current_position += 1
         if new_state.current_position > 2:
             new_state.current_position -= 3
+
+    new_state.cards = new_state.all_cards[new_state.current_position]
 
     new_state.transform_to_state()
 
