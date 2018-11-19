@@ -10,7 +10,6 @@ from code.constants import CARDS
 from code.rules import possible_cards
 from code.game.game import evaluate_trick
 from code.players.random_player import RandomPlayer
-from code.mcts.game_state import State
 
 
 class ModelPlayer:
@@ -25,11 +24,10 @@ class ModelPlayer:
         self.current_trick = None
         self.current_position = None
         self.player_pos = None
-        self.track= None
+        self.track = None
         self.game_type = None
         self.winner = None
         self.points = None
-
 
     def create_model(self, model_file):
         if model_file is not None:
@@ -49,13 +47,17 @@ class ModelPlayer:
         # MOVE THE LEAF NODE
         leaf, breadcrumbs = self.mcts.move_to_leaf()
 
+        import ipdb; ipdb.set_trace()
+
         # EVALUATE THE LEAF NODE
-        value = self.evaluate_leaf(leaf)
+        self.evaluate_leaf(leaf)
+
+        import ipdb; ipdb.set_trace()
 
         # BACKFILL THE VALUE THROUGH THE TREE
         self.mcts.back_fill(leaf, breadcrumbs)
 
-        # import ipdb; ipdb.set_trace()
+        import ipdb; ipdb.set_trace()
 
     def opponents_card_estimate(self, track, cards, current_trick):
         # Add here an estimate for the cards of the opponent
@@ -80,11 +82,10 @@ class ModelPlayer:
 
         return opp_one_cards, opp_two_cards
 
-
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
                     current_trick, track, points, tau=1):
 
-        self.start_position = current_position 
+        self.start_position = current_position
         opp_one_cards, opp_two_cards = self.opponents_card_estimate(track, cards, current_trick)
         simulation_cards = {0: None, 1: None, 2: None}
         simulation_cards[current_position] = cards
@@ -97,8 +98,8 @@ class ModelPlayer:
 
         self.points = points
 
-        state = State(winner, game_type, current_position, player_pos, simulation_cards, 
-                      current_trick, track, points) 
+        state = State(winner, game_type, current_position, player_pos, simulation_cards,
+                      current_trick, track, points)
 
         state.transform_to_state()
 
@@ -134,7 +135,7 @@ class ModelPlayer:
         logits = logits_array[0]
 
         allowed_actions = leaf.allowed_actions
-        logits[allowed_actions] = -100
+        logits[np.logical_not(allowed_actions)] = -100
 
         # SOFTMAX
         odds = np.exp(logits)
@@ -144,9 +145,11 @@ class ModelPlayer:
 
     def evaluate_leaf(self, leaf):
         if leaf.done:
-            return leaf.value
+            return
 
         value, probs = self.get_preds(leaf)
+
+        import ipdb; ipdb.set_trace()
 
         for idx, allowed in enumerate(leaf.allowed_actions):
             if allowed:
@@ -156,9 +159,9 @@ class ModelPlayer:
                     import ipdb; ipdb.set_trace()
                     leaf.done = new_done
                     leaf.value = new_value
-                    return new_value
+                    return
                 if new_state.id not in self.mcts.tree:
-                    node = mc.Node(new_state, value, new_done)
+                    node = mc.Node(new_state, value[0], new_done)
                     self.mcts.add_node(node)
                     print(len(self.mcts.tree))
                 else:
@@ -166,10 +169,8 @@ class ModelPlayer:
                     print('old')
                     # import ipdb; ipdb.set_trace()
 
-                new_edge = mc.Edge(leaf, node, probs[idx], CARDS[idx], self.current_position)
+                new_edge = mc.Edge(leaf, node, probs[idx], CARDS[idx])
                 leaf.edges.append(new_edge)
-
-        return value
 
     def get_av(self, tau):
         edges = self.mcts.root.edges
