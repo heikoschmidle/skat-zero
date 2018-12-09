@@ -1,7 +1,8 @@
 from code.constants import CARDS, NULL_CARDS, POINTS, SUIT_MAP, sort_cards
 
 class Game:
-    def __init__(self, init_game, players):
+    def __init__(self, memory, init_game, players):
+        self.memory = memory
         self.players = players
         self.cards = init_game["cards"]
         self.game_type = init_game["player"]["name"]
@@ -19,7 +20,7 @@ class Game:
                     current_position -= 3
                 player = self.players[current_position]
                 cards_left = 10 - trick_number
-                card = player.choose_card(
+                state, card, pi, value = player.choose_card(
                     winner,
                     self.game_type,
                     current_position,
@@ -32,6 +33,9 @@ class Game:
                 current_trick.append(card)
                 track.append(card)
 
+                if player.type == 'model':
+                    self.memory.commit_stmemory(state, value, pi, current_position)
+
             winner = evaluate_trick(winner, current_trick, self.game_type)
 
             for c in current_trick:
@@ -39,7 +43,7 @@ class Game:
                     self.points[winner] += POINTS[c[1]]
                 self.cards.remove(c)
 
-        return evaluate_game(self.points, self.player_pos, self.game_type)
+        return evaluate_game(self.points, self.player_pos, self.game_type, self.memory, )
 
 def evaluate_trick(winner, current_trick, game_type):
     if game_type == "grand":
@@ -99,17 +103,25 @@ def evaluate_color_trick(current_trick, trump):
     return current_trick.index(winner_card)
 
 
-def evaluate_game(points, player_position, game_type):
+def evaluate_game(points, player_position, game_type, memory):
     idx = [0, 1, 2]
+    winner = None
     if game_type == "null":
         if points[player_position] > 0:
             idx.remove(player_position)
-            return idx
+            winner = idx
     else:
         if points[player_position] < 61:
             idx.remove(player_position)
-            return idx
-    return [player_position]
+            winner = idx
+    winner = [player_position]
 
+    if memory:
+        for i in memory.stmemory:
+            if i['current_pos'] in winner:
+                i['value'] = points[i['current_pos']]
+            else:
+                i['value'] = -points[i['current_pos']]
+        memory.commit_ltmemory()
 
-
+    return winner

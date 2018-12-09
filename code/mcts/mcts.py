@@ -38,10 +38,12 @@ class Edge():
 
 
 class MCTS():
-    def __init__(self, root, cpuct):
+    def __init__(self, root, cpuct, epsilon, alpha):
         self.root = root
         self.tree = {}
-        self.cpuct = 100.0
+        self.cpuct = cpuct
+        self.epsilon = epsilon
+        self.alpha = alpha
         self.add_node(root)
 
     def __len__(self):
@@ -53,14 +55,13 @@ class MCTS():
 
         while not current_node.is_leaf():
             maxQU = -99999.0
-            print(current_node.id)
 
-            # if current_node == self.root:
-            #     epsilon = epsilon
-            #     nu = np.random.dirichlet([alpha] * len(current_node.edges))
-            # else:
-            epsilon = 0.0
-            nu = [0.0] * len(current_node.edges)
+            if current_node == self.root:
+                epsilon = self.epsilon
+                nu = np.random.dirichlet([self.alpha] * len(current_node.edges))
+            else:
+                epsilon = 0.0
+                nu = [0.0] * len(current_node.edges)
 
             Nb = 0.0
             for edge in current_node.edges:
@@ -76,13 +77,9 @@ class MCTS():
                 if Q + U > maxQU:
                     maxQU = Q + U
                     simulation_edge = edge
-                # import ipdb; ipdb.set_trace()
-            print(simulation_edge.out_node.id)
 
             current_node = simulation_edge.out_node
             breadcrumbs.append(simulation_edge)
-
-        import ipdb; ipdb.set_trace()
 
         return current_node, breadcrumbs
 
@@ -98,7 +95,6 @@ class MCTS():
                 direction = 1.0
             elif player_turn != player_pos:
                 direction = 1.0
-            elif player_turn == player_pos:
                 direction = -1.0
 
             edge.stats['N'] = edge.stats['N'] # + 1.0

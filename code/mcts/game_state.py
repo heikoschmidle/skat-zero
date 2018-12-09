@@ -74,7 +74,7 @@ def take_action(state, card):
     value = 0
     done = False
     if len(new_state.track) == 30:
-        winners = evaluate_game(new_state.points, new_state.player_pos, new_state.game_type)
+        winners = evaluate_game(new_state.points, new_state.player_pos, new_state.game_type, None)
         print("WINNERS", winners)
         value = sum([new_state.points[p] for p in winners])
         done = True
