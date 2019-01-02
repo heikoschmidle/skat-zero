@@ -4,6 +4,9 @@ from code.constants import SUIT_MAP
 def possible_cards(cards, current_table, game_type):
     if len(current_table) == 0:
         return cards
+    if len(cards) == 1:
+        return cards
+
     first_card = current_table[0]
 
     if game_type == "grand":

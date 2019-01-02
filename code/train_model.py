@@ -31,7 +31,7 @@ def main(job):
             score[w] += 1
         print(score)
         if len(memory.ltmemory) >= job['MEMORY_SIZE']:
-            model_player.replay(memory.ltmemory)
+            model_player.replay(memory.ltmemory, job)
 
 
 def debug():

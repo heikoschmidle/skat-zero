@@ -8,6 +8,7 @@ class Game:
         self.game_type = init_game["player"]["name"]
         self.player_pos = init_game["player"]["position"]
         self.points = {0: 0, 1: 0, 2: 0}
+        print(init_game)
 
     def play(self):
         winner = 0
@@ -20,21 +21,26 @@ class Game:
                     current_position -= 3
                 player = self.players[current_position]
                 cards_left = 10 - trick_number
-                state, card, pi, value = player.choose_card(
-                    winner,
-                    self.game_type,
-                    current_position,
-                    self.player_pos,
-                    self.cards[current_position * cards_left: (current_position + 1) * cards_left],
-                    current_trick,
-                    track,
-                    self.points
-                )
-                current_trick.append(card)
-                track.append(card)
-
-                if player.type == 'model':
-                    self.memory.commit_stmemory(state, value, pi, current_position)
+                current_cards = self.cards[current_position * cards_left: (current_position + 1) * cards_left]
+                if len(current_cards) > 1:
+                    state, card, pi, value = player.choose_card(
+                        winner,
+                        self.game_type,
+                        current_position,
+                        self.player_pos,
+                        current_cards,
+                        current_trick,
+                        track,
+                        self.points
+                    )
+                    current_trick.append(CARDS[card])
+                    track.append(CARDS[card])
+                    if player.type == 'model':
+                        self.memory.commit_stmemory(state, value, pi, current_position)
+                else:
+                    card = current_cards[0]
+                    current_trick.append(card)
+                    track.append(card)
 
             winner = evaluate_trick(winner, current_trick, self.game_type)
 
@@ -117,11 +123,11 @@ def evaluate_game(points, player_position, game_type, memory):
     winner = [player_position]
 
     if memory:
-        for i in memory.stmemory:
-            if i['current_pos'] in winner:
-                i['value'] = points[i['current_pos']]
+        for move in memory.stmemory:
+            if move['current_pos'] in winner:
+                move['value'] = points[move['current_pos']]
             else:
-                i['value'] = -points[i['current_pos']]
+                move['value'] = -points[move['current_pos']]
         memory.commit_ltmemory()
 
     return winner

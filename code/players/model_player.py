@@ -51,20 +51,18 @@ class ModelPlayer:
         # MOVE THE LEAF NODE
         leaf, breadcrumbs = self.mcts.move_to_leaf()
 
-        # import ipdb; ipdb.set_trace()
-
         # EVALUATE THE LEAF NODE
         self.evaluate_leaf(leaf)
-
-        # import ipdb; ipdb.set_trace()
 
         # BACKFILL THE VALUE THROUGH THE TREE
         self.mcts.back_fill(leaf, breadcrumbs)
 
-        # import ipdb; ipdb.set_trace()
+        return leaf
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
                     current_trick, track, points, tau=1):
+
+        print(player_pos, current_position, current_trick)
 
         self.start_position = current_position
         opp_one_cards, opp_two_cards = random_estimate(track, cards, current_trick)
@@ -73,8 +71,8 @@ class ModelPlayer:
         pool = cycle([0, 1, 2])
         for p in pool:
             if p == self.start_position:
-                simulation_cards[next(pool)] = opp_one_cards
                 simulation_cards[next(pool)] = opp_two_cards
+                simulation_cards[next(pool)] = opp_one_cards
                 break
 
         self.points = points
@@ -89,9 +87,14 @@ class ModelPlayer:
         else:
             self.change_root_mcts(state.id)
 
-        for _ in range(10000):  #self.mcts_simulations):
-            self.simulate()
-            # import ipdb; ipdb.set_trace()
+        for i in range(1):  #self.mcts_simulations):
+            leaf = self.simulate()
+            print(len(current_trick), len(track), len(self.mcts), leaf.done)
+
+            # if len(current_trick) == 4:
+            #     print(len(current_trick), i, len(self.mcts), leaf.done)
+            #     print(len(leaf.state.track), leaf.state.current_position, leaf.state.current_trick)
+            #     print(leaf.state.all_cards, leaf.state.track)
 
         # get action values
         pi, values = self.get_av(1)
@@ -99,11 +102,11 @@ class ModelPlayer:
         # pick the action
         action, value = self.choose_action(pi, values, tau)
 
-        next_state, _, _ = take_action(state, action)
+        # _, _, next_state = take_action(state, CARDS[action])
 
-        nn_value = -self.get_preds(next_state)[0]
+        # nn_value = -self.get_preds(mc.Node(next_state, None, None))[0]
 
-        return state, action, pi, value, nn_value
+        return state, action, pi, value
 
     def get_preds(self, leaf):
         # predict the leaf
@@ -134,19 +137,15 @@ class ModelPlayer:
             if allowed:
                 new_value, new_done, new_state = take_action(leaf.state, CARDS[idx])
                 if new_done:
-                    print('FINISHED', new_value)
-                    # import ipdb; ipdb.set_trace()
                     leaf.done = new_done
                     leaf.value = new_value
+                    leaf.state = new_state
                     return
                 if new_state.id not in self.mcts.tree:
                     node = mc.Node(new_state, value[0], new_done)
                     self.mcts.add_node(node)
-                    print(len(self.mcts.tree))
                 else:
                     node = self.mcts.tree[new_state.id]
-                    print('old')
-                    # import ipdb; ipdb.set_trace()
 
                 new_edge = mc.Edge(leaf, node, probs[idx], idx)
                 leaf.edges.append(new_edge)
@@ -178,7 +177,9 @@ class ModelPlayer:
         for i in range(job['TRAINING_LOOPS']):
             minibatch = random.sample(ltmemory, min(job['BATCH_SIZE'], len(ltmemory)))
 
-            training_states = np.array([np.array([np.reshape(row['state'], (32, 48, 1))]) for row in minibatch])
+            training_states = np.array([np.array([np.reshape(row['state'].state, (32, 48, 1))]) for row in minibatch])
+            input_to_model = np.array([np.reshape(minibatch[0]['state'].state, (32, 48, 1))])
+            import ipdb; ipdb.set_trace()
             training_targets = {
                 'value_head': np.array([row['value'] for row in minibatch]),
                 'policy_head': np.array([row['action_values'] for row in minibatch])

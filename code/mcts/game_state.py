@@ -75,18 +75,17 @@ def take_action(state, card):
     done = False
     if len(new_state.track) == 30:
         winners = evaluate_game(new_state.points, new_state.player_pos, new_state.game_type, None)
-        print("WINNERS", winners)
         value = sum([new_state.points[p] for p in winners])
         done = True
-        return value, done, None
-
-    if len(new_state.current_trick) == 3:
+        # print('WINNER', winners)
+    elif len(new_state.current_trick) == 3:
         winner = evaluate_trick(new_state.winner, new_state.current_trick, new_state.game_type)
         for c in new_state.current_trick:
             if c[1] in POINTS:
                 new_state.points[winner] += POINTS[c[1]]
         new_state.current_position = winner
         new_state.winner = winner
+        # print(new_state.current_trick, winner, state.winner)
         new_state.current_trick = []
     else:
         new_state.current_position += 1

@@ -87,20 +87,15 @@ class MCTS():
         current_player = leaf.current_position
         player_pos = leaf.state.player_pos
         for edge in breadcrumbs:
-            # print(edge.stats)
-            # print(edge.in_node.id)
-            # print(edge.out_node.id)
             player_turn = edge.in_node.current_position
-            if player_turn == current_player:
-                direction = 1.0
-            elif player_turn != player_pos:
-                direction = 1.0
+
+            direction = 1.0
+            if player_turn != player_pos and player_pos != current_player:
                 direction = -1.0
 
-            edge.stats['N'] = edge.stats['N'] # + 1.0
-            edge.stats['W'] = edge.stats['W'] # + leaf.value * direction
+            edge.stats['N'] = edge.stats['N'] + 0.001
+            edge.stats['W'] = edge.stats['W'] + 0.001 * leaf.value * direction
             edge.stats['Q'] = edge.stats['W'] / edge.stats['N']
-            # import ipdb; ipdb.set_trace()
 
     def add_node(self, node):
         self.tree[node.id] = node
