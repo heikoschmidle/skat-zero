@@ -47,22 +47,24 @@ class ModelPlayer:
     def change_root_mcts(self, state_id):
         self.mcts.root = self.mcts.tree[state_id]
 
-    def simulate(self):
+    def simulate(self, factor):
         # MOVE THE LEAF NODE
+        # print('1')
         leaf, breadcrumbs = self.mcts.move_to_leaf()
 
         # EVALUATE THE LEAF NODE
+        # print('2')
         self.evaluate_leaf(leaf)
 
         # BACKFILL THE VALUE THROUGH THE TREE
-        self.mcts.back_fill(leaf, breadcrumbs)
-
-        return leaf
+        # print('3')
+        self.mcts.back_fill(leaf, breadcrumbs, factor)
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
-                    current_trick, track, points, tau=1):
+                    current_trick, track, points, tau=1, factor=1.000):
 
-        print(player_pos, current_position, current_trick)
+        print('Choosing card...')
+        print(player_pos, current_position, current_trick, track)
 
         self.start_position = current_position
         opp_one_cards, opp_two_cards = random_estimate(track, cards, current_trick)
@@ -87,14 +89,10 @@ class ModelPlayer:
         else:
             self.change_root_mcts(state.id)
 
-        for i in range(1):  #self.mcts_simulations):
-            leaf = self.simulate()
-            print(len(current_trick), len(track), len(self.mcts), leaf.done)
-
-            # if len(current_trick) == 4:
-            #     print(len(current_trick), i, len(self.mcts), leaf.done)
-            #     print(len(leaf.state.track), leaf.state.current_position, leaf.state.current_trick)
-            #     print(leaf.state.all_cards, leaf.state.track)
+        for i in range(self.mcts_simulations):
+            if i % 10 == 0:
+                print(i)
+            self.simulate(factor)
 
         # get action values
         pi, values = self.get_av(1)
@@ -109,7 +107,6 @@ class ModelPlayer:
         return state, action, pi, value
 
     def get_preds(self, leaf):
-        # predict the leaf
         input_to_model = np.array([np.reshape(leaf.state.state, (32, 48, 1))])
 
         preds = self.model.predict(input_to_model)
@@ -119,10 +116,18 @@ class ModelPlayer:
         logits = logits_array[0]
 
         allowed_actions = leaf.allowed_actions
+
+        if not allowed_actions.any():
+            import ipdb; ipdb.set_trace()
+
         logits[np.logical_not(allowed_actions)] = -100
 
         # SOFTMAX
         odds = np.exp(logits)
+
+        print(allowed_actions)
+        print(logits)
+
         probs = odds / np.sum(odds)
 
         return value, probs
@@ -177,9 +182,7 @@ class ModelPlayer:
         for i in range(job['TRAINING_LOOPS']):
             minibatch = random.sample(ltmemory, min(job['BATCH_SIZE'], len(ltmemory)))
 
-            training_states = np.array([np.array([np.reshape(row['state'].state, (32, 48, 1))]) for row in minibatch])
-            input_to_model = np.array([np.reshape(minibatch[0]['state'].state, (32, 48, 1))])
-            import ipdb; ipdb.set_trace()
+            training_states = np.array([np.reshape(row['state'].state, (32, 48, 1)) for row in minibatch])
             training_targets = {
                 'value_head': np.array([row['value'] for row in minibatch]),
                 'policy_head': np.array([row['action_values'] for row in minibatch])

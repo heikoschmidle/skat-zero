@@ -6,7 +6,8 @@ class HeuristicPlayer:
     def __init__(self):
         self.type = 'heuristic'
 
-    def choose_card(self, current_pos, cards, current_trick, track, player_pos, game_type):
+    def choose_card(self, winner, game_type, current_pos, player_pos, cards,
+                    current_trick, track, points):
         first_pos = 0
         game = {
             "name": game_type,
@@ -36,4 +37,4 @@ def post_request(payload):
     except Exception as e:
         print(e)
         sys.exit(0)
-    return None, res["cardID"]
+    return None, res["cardID"], None, None

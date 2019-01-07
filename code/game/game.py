@@ -35,7 +35,7 @@ class Game:
                     )
                     current_trick.append(CARDS[card])
                     track.append(CARDS[card])
-                    if player.type == 'model':
+                    if player.type == 'model' and self.memory:
                         self.memory.commit_stmemory(state, value, pi, current_position)
                 else:
                     card = current_cards[0]
@@ -49,7 +49,7 @@ class Game:
                     self.points[winner] += POINTS[c[1]]
                 self.cards.remove(c)
 
-        return evaluate_game(self.points, self.player_pos, self.game_type, self.memory, )
+        return evaluate_game(self.points, self.player_pos, self.game_type, self.memory)
 
 def evaluate_trick(winner, current_trick, game_type):
     if game_type == "grand":

@@ -68,11 +68,21 @@ class MCTS():
                 Nb = Nb + edge.stats['N']
 
             for idx, edge in enumerate(current_node.edges):
+                if Nb < 0:
+                    import ipdb; ipdb.set_trace()
+                if edge.stats['N'] < 0:
+                    import ipdb; ipdb.set_trace()
+
                 U = self.cpuct * \
                     ((1.0 - epsilon) * edge.stats['P'] + epsilon * nu[idx]) * \
                     np.sqrt(Nb) / (1.0 + edge.stats['N'])
 
                 Q = edge.stats['Q']
+
+                print(len(current_node.edges), U, Q, edge.stats, Nb)
+
+                if U is np.nan:
+                    import ipdb; ipdb.set_trace()
 
                 if Q + U > maxQU:
                     maxQU = Q + U
@@ -83,7 +93,7 @@ class MCTS():
 
         return current_node, breadcrumbs
 
-    def back_fill(self, leaf, breadcrumbs):
+    def back_fill(self, leaf, breadcrumbs, factor):
         current_player = leaf.current_position
         player_pos = leaf.state.player_pos
         for edge in breadcrumbs:
@@ -93,8 +103,8 @@ class MCTS():
             if player_turn != player_pos and player_pos != current_player:
                 direction = -1.0
 
-            edge.stats['N'] = edge.stats['N'] + 0.001
-            edge.stats['W'] = edge.stats['W'] + 0.001 * leaf.value * direction
+            edge.stats['N'] = edge.stats['N'] + factor
+            edge.stats['W'] = edge.stats['W'] + factor * leaf.value * direction
             edge.stats['Q'] = edge.stats['W'] / edge.stats['N']
 
     def add_node(self, node):
