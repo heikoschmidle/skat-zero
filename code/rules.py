@@ -1,5 +1,6 @@
-from code.constants import SUIT_MAP
+import sys
 
+from code.constants import SUIT_MAP
 
 def possible_cards(cards, current_table, game_type):
     if len(current_table) == 0:
@@ -15,6 +16,9 @@ def possible_cards(cards, current_table, game_type):
         return possible_null_cards(cards, first_card)
     if game_type in ["karo", "herz", "pik", "kreuz"]:
         return possible_game_cards(cards, first_card, game_type)
+
+    print('UNKOWN GAME TYPE')
+    sys.exit(1)
 
 
 def possible_grand_cards(cards, first_card):

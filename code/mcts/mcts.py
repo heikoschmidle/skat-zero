@@ -79,7 +79,7 @@ class MCTS():
 
                 Q = edge.stats['Q']
 
-                print(len(current_node.edges), U, Q, edge.stats, Nb)
+                # print(len(current_node.edges), U, Q, edge.stats, Nb)
 
                 if U is np.nan:
                     import ipdb; ipdb.set_trace()

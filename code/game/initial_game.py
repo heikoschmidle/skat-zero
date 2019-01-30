@@ -17,9 +17,9 @@ class Game:
     def initialize_game(self):
         shuffle(self.cards)
         players_setup = []
-        skat = self.cards[:-2]
+        # skat = self.cards[:-2]
         for i in range(3):
-            cards = self.cards[(i * 10):((i+ 1) * 10)]
+            cards = self.cards[(i * 10):((i + 1) * 10)]
             game_estimate = self.reizen(cards, 0, i)
             players_setup.append(game_estimate)
         return self.choose_player(players_setup)
@@ -29,7 +29,7 @@ class Game:
         payload = {
             "app": "Skat",
             "type": "reizValue",
-            "cards": cards, 
+            "cards": cards,
             "firstPosition": first_position,
             "position": position
         }
@@ -38,7 +38,7 @@ class Game:
         payload = {
             "app": "Skat",
             "type": "shouldPlayHand",
-            "cards": cards, 
+            "cards": cards,
             "reizValue": reizwert["reizValue"],
             "firstPosition": first_position,
             "position": position
@@ -54,7 +54,7 @@ class Game:
             "firstPosition": first_position,
             "position": position
         }
-        game = post_request(payload)    
+        game = post_request(payload)
         game["reizwert"] = reizwert["reizValue"]
         game["play_hand"] = play_hand
         game["position"] = position
@@ -70,7 +70,7 @@ def post_request(payload):
     try:
         res = json.loads(
             requests.post(
-                'http://127.0.0.1:10999/ai.json', 
+                'http://127.0.0.1:10999/ai.json',
                 json=payload).content.decode('utf-8')
         )
     except Exception as e:

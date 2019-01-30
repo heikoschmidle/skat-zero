@@ -61,9 +61,10 @@ class ModelPlayer:
         self.mcts.back_fill(leaf, breadcrumbs, factor)
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
-                    current_trick, track, points, tau=1, factor=1.000):
+                    current_trick, track, points, tau=0, factor=1.000):
 
         print('Choosing card...')
+        print(cards)
         print(player_pos, current_position, current_trick, track)
 
         self.start_position = current_position
@@ -76,7 +77,7 @@ class ModelPlayer:
                 simulation_cards[next(pool)] = opp_two_cards
                 simulation_cards[next(pool)] = opp_one_cards
                 break
-
+        print(simulation_cards)
         self.points = points
 
         state = State(winner, game_type, current_position, player_pos, simulation_cards,
@@ -125,8 +126,13 @@ class ModelPlayer:
         # SOFTMAX
         odds = np.exp(logits)
 
-        print(allowed_actions)
-        print(logits)
+        # print(allowed_actions)
+        # print(logits)
+
+        try:
+            1 / np.sum(odds)
+        except:
+            import ipdb; ipdb.set_trace()
 
         probs = odds / np.sum(odds)
 
@@ -137,6 +143,8 @@ class ModelPlayer:
             return
 
         value, probs = self.get_preds(leaf)
+
+        # print(value, probs)
 
         for idx, allowed in enumerate(leaf.allowed_actions):
             if allowed:
@@ -187,6 +195,11 @@ class ModelPlayer:
                 'value_head': np.array([row['value'] for row in minibatch]),
                 'policy_head': np.array([row['action_values'] for row in minibatch])
             }
+
+            if not np.isfinite(training_targets['value_head']).all():
+                import ipdb; ipdb.set_trace()
+            if not np.isfinite(training_targets['policy_head']).all():
+                import ipdb; ipdb.set_trace()
 
             self.model.fit(
                 training_states,

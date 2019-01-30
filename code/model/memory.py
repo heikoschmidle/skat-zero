@@ -23,3 +23,6 @@ class Memory:
 
     def clear_stmemory(self):
         self.stmemory = deque(maxlen=self.size)
+
+    def clear_ltmemory(self):
+        self.ltmemory = deque(maxlen=self.size)

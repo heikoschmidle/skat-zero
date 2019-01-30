@@ -2,13 +2,13 @@ from code.constants import CARDS, NULL_CARDS, POINTS, SUIT_MAP, sort_cards
 
 class Game:
     def __init__(self, memory, init_game, players):
+        print(init_game)
         self.memory = memory
         self.players = players
         self.cards = init_game["cards"]
         self.game_type = init_game["player"]["name"]
         self.player_pos = init_game["player"]["position"]
         self.points = {0: 0, 1: 0, 2: 0}
-        print(init_game)
 
     def play(self):
         winner = 0
