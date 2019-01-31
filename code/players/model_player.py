@@ -52,6 +52,9 @@ class ModelPlayer:
         # print('1')
         leaf, breadcrumbs = self.mcts.move_to_leaf()
 
+        if leaf is None:
+            return False
+
         # EVALUATE THE LEAF NODE
         # print('2')
         self.evaluate_leaf(leaf)
@@ -59,6 +62,8 @@ class ModelPlayer:
         # BACKFILL THE VALUE THROUGH THE TREE
         # print('3')
         self.mcts.back_fill(leaf, breadcrumbs, factor)
+
+        return True
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
                     current_trick, track, points, tau=0, factor=1.000):
@@ -93,7 +98,9 @@ class ModelPlayer:
         for i in range(self.mcts_simulations):
             if i % 10 == 0:
                 print(i)
-            self.simulate(factor)
+            success = self.simulate(factor)
+            if not success:
+                return None
 
         # get action values
         pi, values = self.get_av(1)

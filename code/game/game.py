@@ -33,6 +33,8 @@ class Game:
                         track,
                         self.points
                     )
+                    if card is None:
+                        return None
                     current_trick.append(CARDS[card])
                     track.append(CARDS[card])
                     if player.type == 'model' and self.memory:

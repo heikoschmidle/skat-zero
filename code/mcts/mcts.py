@@ -53,8 +53,10 @@ class MCTS():
         breadcrumbs = []
         current_node = self.root
 
+        i = 0
         while not current_node.is_leaf():
             maxQU = -99999.0
+            i += 1
 
             if current_node == self.root:
                 epsilon = self.epsilon
@@ -90,6 +92,12 @@ class MCTS():
 
             current_node = simulation_edge.out_node
             breadcrumbs.append(simulation_edge)
+
+            if i > 1000:
+                print(current_node)
+                print(current_node.edges)
+                print("Something went wrong")
+                return None
 
         return current_node, breadcrumbs
 

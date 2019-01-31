@@ -177,13 +177,11 @@ class Residual_CNN():
             states, targets, epochs=epochs, verbose=verbose,
             validation_split=validation_split, batch_size=batch_size)
 
-    # def write(self, game, version, file_name):
-    #     self.model.save(file_name + '.h5')
+    def write(self, file_name):
+        self.model.save(file_name + '.h5')
 
-    # def read(self, game, run_number, version):
-    #     return load_model(
-    #         run_archive_folder + game + '/run' + str(run_number).zfill(4) + "/models/version" + "{0:0>4}".format(
-    #             version) + '.h5', custom_objects={
-    #                 'softmax_cross_entropy_with_logits': softmax_cross_entropy_with_logits
-    #             }
-    #         )
+    def read(self, file_name):
+        return load_model(file_name + '.h5', custom_objects={
+                    'softmax_cross_entropy_with_logits': softmax_cross_entropy_with_logits
+                }
+            )
