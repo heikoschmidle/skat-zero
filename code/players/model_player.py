@@ -66,7 +66,7 @@ class ModelPlayer:
         return True
 
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
-                    current_trick, track, points, tau=0, factor=1.000):
+                    current_trick, track, points, tau=0, factor=0.100):
 
         print('Choosing card...')
         print(cards)
@@ -100,7 +100,7 @@ class ModelPlayer:
                 print(i)
             success = self.simulate(factor)
             if not success:
-                return None
+                return False
 
         # get action values
         pi, values = self.get_av(1)
@@ -112,7 +112,7 @@ class ModelPlayer:
 
         # nn_value = -self.get_preds(mc.Node(next_state, None, None))[0]
 
-        return state, action, pi, value
+        return True, state, action, pi, value
 
     def get_preds(self, leaf):
         input_to_model = np.array([np.reshape(leaf.state.state, (32, 48, 1))])
@@ -194,28 +194,27 @@ class ModelPlayer:
         return action, value
 
     def replay(self, ltmemory, job):
-        for i in range(job['TRAINING_LOOPS']):
-            minibatch = random.sample(ltmemory, min(job['BATCH_SIZE'], len(ltmemory)))
+        minibatch = random.sample(ltmemory, min(job['BATCH_SIZE'], len(ltmemory)))
 
-            training_states = np.array([np.reshape(row['state'].state, (32, 48, 1)) for row in minibatch])
-            training_targets = {
-                'value_head': np.array([row['value'] for row in minibatch]),
-                'policy_head': np.array([row['action_values'] for row in minibatch])
-            }
+        training_states = np.array([np.reshape(row['state'].state, (32, 48, 1)) for row in minibatch])
+        training_targets = {
+            'value_head': np.array([row['value'] for row in minibatch]),
+            'policy_head': np.array([row['action_values'] for row in minibatch])
+        }
 
-            if not np.isfinite(training_targets['value_head']).all():
-                import ipdb; ipdb.set_trace()
-            if not np.isfinite(training_targets['policy_head']).all():
-                import ipdb; ipdb.set_trace()
+        if not np.isfinite(training_targets['value_head']).all():
+            import ipdb; ipdb.set_trace()
+        if not np.isfinite(training_targets['policy_head']).all():
+            import ipdb; ipdb.set_trace()
 
-            self.model.fit(
-                training_states,
-                training_targets,
-                epochs=job['EPOCHS'],
-                verbose=1,
-                validation_split=0,
-                batch_size=32
-            )
+        self.model.fit(
+            training_states,
+            training_targets,
+            epochs=job['EPOCHS'],
+            verbose=1,
+            validation_split=0,
+            batch_size=32
+        )
 
     def predict(self, inputToModel):
         preds = self.model.predict(inputToModel)

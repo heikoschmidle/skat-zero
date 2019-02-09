@@ -23,7 +23,7 @@ class Game:
                 cards_left = 10 - trick_number
                 current_cards = self.cards[current_position * cards_left: (current_position + 1) * cards_left]
                 if len(current_cards) > 1:
-                    state, card, pi, value = player.choose_card(
+                    valid, state, card, pi, value = player.choose_card(
                         winner,
                         self.game_type,
                         current_position,
@@ -33,7 +33,8 @@ class Game:
                         track,
                         self.points
                     )
-                    if card is None:
+                    if not valid:
+                        import ipdb; ipdb.set_trace()
                         return None
                     current_trick.append(CARDS[card])
                     track.append(CARDS[card])

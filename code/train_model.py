@@ -5,76 +5,59 @@ import yaml
 import gzip
 import json
 import random
+import os
+import logging
 
 from code.players.model_player import ModelPlayer
 from code.players.random_player import RandomPlayer
 from code.players.heuristic_player import HeuristicPlayer
 from code.game.game import Game
 from code.model.memory import Memory
+from code.funcs.play_matches import *
 
 
 def main(job):
-    train_games = []
-    test_games = []
-    with gzip.open(job['GAMES_FILE'], 'r') as f:
-        for line in f:
-            game = json.loads(line.decode())
-            if len(game['cards']) != 32:
-                print(game)
-                continue
-            if random.random() < 0.7:
-                train_games.append(game)
-            else:
-                test_games.append(game)
+    if not os.path.exists(job["LOG_DIR"]):
+        os.makedirs(job["LOG_DIR"])
+    if not os.path.exists(job["MODEL_DIR"]):
+        os.makedirs(job["MODEL_DIR"])
+    if not os.path.exists(job["RESULTS_DIR"]):
+        os.makedirs(job["RESULTS_DIR"])
 
-    memory = Memory(10000)  # job['MEMORY_SIZE'])
+    logfile = os.path.join(job["LOG_DIR"], '{}.log'.format(job["JOB_ID"]))
+    logging.basicConfig(filename=logfile, level=logging.DEBUG)
+    resultsfile = os.path.join(job["RESULTS_DIR"], '{}.csv'.format(job["JOB_ID"]))
+    rf = open(resultsfile, 'w+')
+
+    memory = Memory(job['MEMORY_SIZE'])
     current_player = ModelPlayer(job)
     best_player = ModelPlayer(job)
-    heuristic_player = RandomPlayer()
+    random_player = RandomPlayer()
+    best_player_version = 0
 
-    player_1 = current_player
-    player_2 = current_player
-    player_3 = current_player
+    score = [0, 0, 0]
+    test_score = [0, 0, 0]
+    
+    train_games, test_games = read_initial_games(job)
 
-    score = {0: 0, 1: 0, 2: 0}
-    test_score = {0: 0, 1: 0, 2: 0}
-    for step, init_game in enumerate(train_games):
-        ig = copy.deepcopy(init_game)
-        g = Game(memory, ig, [player_1, player_2, player_3])
-        winners = g.play()
-        if winners is None:
-            continue
-        for w in winners:
-            score[w] += 1
+    for step in range(job['TRAINING_LOOPS']):
+        players = [current_player, current_player, current_player]
+        play_training_games(job, train_games, score, players, memory)
+        rf.write('train, {}, {}, {}'.format(score[0], score[1], score[2]))
 
-        print(score)
+        # players = [current_player, best_player, random_player]
+        # players = [current_player, current_player, best_player]
+        # play_test_games(job, test_games, test_score, players)
+        # rf.write('test, {}, {}, {}'.format(test_score[0], test_score[1], test_score[2]))
 
-        if len(memory.ltmemory) >= job['MEMORY_SIZE']:
-            current_player.replay(memory.ltmemory, job)
-            memory.clear_ltmemory()
+        # if test_score[0] > test_score[1] * job['SCORING_THRESHOLD']:
+        #     best_player_version = best_player_version + 1
+        #     best_player.model.model.set_weights(current_player.model.model.get_weights())
+        #     best_player.model.write(
+        #         os.path.join(job["MODEL_DIR"], 'best_model_{}'.format(best_player_version))
+        #     )
 
-        if step % 1 == 0:
-            for init_game in random.sample(test_games, 3):
-                tg = copy.deepcopy(init_game)
-                g = Game(None, tg, [player_1, heuristic_player, heuristic_player])
-                winners = g.play()
-                if winners is None:
-                    continue
-                for w in winners:
-                    test_score[w] += 1
-            print('test:', test_score)
-            import ipdb; ipdb.set_trace()
-            player_1 = best_player
-            for init_game in random.sample(test_games, 3):
-                tg = copy.deepcopy(init_game)
-                g = Game(None, tg, [player_1, heuristic_player, heuristic_player])
-                winners = g.play()
-                if winners is None:
-                    continue
-                for w in winners:
-                    test_score[w] += 1
-            print('test:', test_score)
-            # import ipdb; ipdb.set_trace()
+        # import ipdb; ipdb.set_trace()
 
 
 def debug():

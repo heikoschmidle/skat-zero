@@ -1,5 +1,5 @@
 import numpy as np
-
+import logging
 
 from code.mcts.game_state import take_action
 
@@ -70,21 +70,11 @@ class MCTS():
                 Nb = Nb + edge.stats['N']
 
             for idx, edge in enumerate(current_node.edges):
-                if Nb < 0:
-                    import ipdb; ipdb.set_trace()
-                if edge.stats['N'] < 0:
-                    import ipdb; ipdb.set_trace()
-
                 U = self.cpuct * \
                     ((1.0 - epsilon) * edge.stats['P'] + epsilon * nu[idx]) * \
                     np.sqrt(Nb) / (1.0 + edge.stats['N'])
 
                 Q = edge.stats['Q']
-
-                # print(len(current_node.edges), U, Q, edge.stats, Nb)
-
-                if U is np.nan:
-                    import ipdb; ipdb.set_trace()
 
                 if Q + U > maxQU:
                     maxQU = Q + U
@@ -96,6 +86,7 @@ class MCTS():
             if i > 1000:
                 print(current_node)
                 print(current_node.edges)
+                print([e.stats for e in current_node.edges])
                 print("Something went wrong")
                 return None
 
