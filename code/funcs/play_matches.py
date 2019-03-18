@@ -23,6 +23,7 @@ def read_initial_games(job):
 
 
 def play_training_games(job, train_games, score, players, memory):
+    # import ipdb; ipdb.set_trace()
     for init_game in random.sample(train_games, job['TRAINING_SIZE']):
         ig = copy.deepcopy(init_game)
         g = Game(memory, ig, players)
@@ -32,9 +33,10 @@ def play_training_games(job, train_games, score, players, memory):
         for w in winners:
             score[w] += 1
 
-    if len(memory.ltmemory) >= job['MEMORY_SIZE']:
-        players[0].replay(memory.ltmemory, job)
-        memory.clear_ltmemory()
+    # if len(memory.ltmemory) >= job['MEMORY_SIZE']:
+    players[0].replay(memory.ltmemory, job)
+    memory.clear_ltmemory()
+    # import ipdb; ipdb.set_trace()
 
 
 def play_test_games(job, test_games, test_score, players):

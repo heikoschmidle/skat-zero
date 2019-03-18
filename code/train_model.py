@@ -13,7 +13,7 @@ from code.players.random_player import RandomPlayer
 from code.players.heuristic_player import HeuristicPlayer
 from code.game.game import Game
 from code.model.memory import Memory
-from code.funcs.play_matches import *
+from code.funcs.play_matches import play_training_games, play_test_games, read_initial_games
 
 
 def main(job):
@@ -37,7 +37,7 @@ def main(job):
 
     score = [0, 0, 0]
     test_score = [0, 0, 0]
-    
+
     train_games, test_games = read_initial_games(job)
 
     for step in range(job['TRAINING_LOOPS']):
@@ -61,8 +61,8 @@ def main(job):
 
 
 def debug():
-    # filename = '/home/heiko/Projects/heiko/skat-zero/code/configuration.yml'
-    filename = '/Users/heikoschmidle/projects/sauspiel/skat-zero/code/configuration.yml'
+    filename = '/home/heiko/Projects/heiko/skat-zero/code/configuration.yml'
+    # filename = '/Users/heikoschmidle/projects/sauspiel/skat-zero/code/configuration.yml'
     with open(filename) as f:
         job = yaml.load(f)
     main(job)

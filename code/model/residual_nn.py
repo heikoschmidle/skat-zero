@@ -43,11 +43,11 @@ class Residual_CNN():
         x = Conv2D(
             filters=filters,
             kernel_size=kernel_size,
-            data_format='channels_first',
+            data_format='channels_last',
             padding='same',
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const)
+            # kernel_regularizer=regularizers.l2(self.reg_const)
         )(x)
 
         x = BatchNormalization(axis=1)(x)
@@ -62,11 +62,11 @@ class Residual_CNN():
         x = Conv2D(
             filters=filters,
             kernel_size=kernel_size,
-            data_format='channels_first',
+            data_format='channels_last',
             padding='same',
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const)
+            # kernel_regularizer=regularizers.l2(self.reg_const)
         )(x)
 
         x = BatchNormalization(axis=1)(x)
@@ -78,11 +78,11 @@ class Residual_CNN():
         x = Conv2D(
             filters=1,
             kernel_size=(1, 1),
-            data_format='channels_first',
+            data_format='channels_last',
             padding='same',
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const)
+            # kernel_regularizer=regularizers.l2(self.reg_const)
         )(x)
 
         x = BatchNormalization(axis=1)(x)
@@ -94,7 +94,7 @@ class Residual_CNN():
             20,
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const)
+            # kernel_regularizer=regularizers.l2(self.reg_const)
         )(x)
 
         x = LeakyReLU()(x)
@@ -103,7 +103,7 @@ class Residual_CNN():
             1,
             use_bias=False,
             activation='tanh',
-            kernel_regularizer=regularizers.l2(self.reg_const),
+            # kernel_regularizer=regularizers.l2(self.reg_const),
             name='value_head'
         )(x)
 
@@ -113,11 +113,11 @@ class Residual_CNN():
         x = Conv2D(
             filters=2,
             kernel_size=(1, 1),
-            data_format="channels_first",
+            data_format='channels_last',
             padding='same',
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const)
+            # kernel_regularizer=regularizers.l2(self.reg_const)
         )(x)
 
         x = BatchNormalization(axis=1)(x)
@@ -129,7 +129,7 @@ class Residual_CNN():
             self.output_dim,
             use_bias=False,
             activation='linear',
-            kernel_regularizer=regularizers.l2(self.reg_const),
+            # kernel_regularizer=regularizers.l2(self.reg_const),
             name='policy_head'
         )(x)
 
@@ -151,7 +151,7 @@ class Residual_CNN():
         model.compile(
             loss={
                 'value_head': 'mean_squared_error',
-                'policy_head': softmax_cross_entropy_with_logits
+                'policy_head': 'mean_squared_error'  # softmax_cross_entropy_with_logits
             },
             optimizer=SGD(
                 lr=self.learning_rate,
@@ -163,11 +163,6 @@ class Residual_CNN():
             }
         )
         return model
-
-    def convertToModelInput(self, state):
-        inputToModel = state.binary
-        inputToModel = np.reshape(inputToModel, self.input_dim)
-        return (inputToModel)
 
     def predict(self, x):
         return self.model.predict(x)
@@ -182,6 +177,5 @@ class Residual_CNN():
 
     def read(self, file_name):
         return load_model(file_name + '.h5', custom_objects={
-                    'softmax_cross_entropy_with_logits': softmax_cross_entropy_with_logits
-                }
-            )
+            'softmax_cross_entropy_with_logits': softmax_cross_entropy_with_logits
+        })

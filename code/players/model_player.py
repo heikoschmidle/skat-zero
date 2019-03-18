@@ -7,6 +7,7 @@ import code.mcts.mcts as mc
 from code.mcts.game_state import State, take_action
 from code.constants import sort_cards, encode_binary
 from code.constants import CARDS
+from code.cnn_setup import INPUT_DIMENSION
 from code.rules import possible_cards
 from code.game.game import evaluate_trick
 from code.players.random_player import RandomPlayer
@@ -90,6 +91,8 @@ class ModelPlayer:
 
         state.transform_to_state()
 
+        # import ipdb; ipdb.set_trace()
+
         if self.mcts is None or state.id not in self.mcts.tree:
             self.build_mcts(state)
         else:
@@ -115,7 +118,7 @@ class ModelPlayer:
         return True, state, action, pi, value
 
     def get_preds(self, leaf):
-        input_to_model = np.array([np.reshape(leaf.state.state, (32, 48, 1))])
+        input_to_model = np.array([np.reshape(leaf.state.state, INPUT_DIMENSION)])
 
         preds = self.model.predict(input_to_model)
         value_array = preds[0]
@@ -143,7 +146,7 @@ class ModelPlayer:
 
         probs = odds / np.sum(odds)
 
-        return value, probs
+        return 244 * value, probs
 
     def evaluate_leaf(self, leaf):
         if leaf.done:
@@ -151,7 +154,7 @@ class ModelPlayer:
 
         value, probs = self.get_preds(leaf)
 
-        # print(value, probs)
+        # print(value)  # , probs)
 
         for idx, allowed in enumerate(leaf.allowed_actions):
             if allowed:
@@ -196,11 +199,16 @@ class ModelPlayer:
     def replay(self, ltmemory, job):
         minibatch = random.sample(ltmemory, min(job['BATCH_SIZE'], len(ltmemory)))
 
-        training_states = np.array([np.reshape(row['state'].state, (32, 48, 1)) for row in minibatch])
+        training_states = np.array([np.reshape(row['state'].state, INPUT_DIMENSION) for row in minibatch])
         training_targets = {
-            'value_head': np.array([row['value'] for row in minibatch]),
+            'value_head': np.array([row['value'] / 244.0 for row in minibatch]),
             'policy_head': np.array([row['action_values'] for row in minibatch])
         }
+
+        # print(training_targets['value_head'])
+        # print(training_targets['policy_head'])
+
+        # print(np.isfinite(training_states).all())
 
         if not np.isfinite(training_targets['value_head']).all():
             import ipdb; ipdb.set_trace()

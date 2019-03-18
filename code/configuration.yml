@@ -3,7 +3,8 @@
 "LOG_DIR": 'logs/'
 "MODEL_DIR": 'models/'
 "RESULTS_DIR": 'results/'
-"GAMES_FILE": '/Users/heikoschmidle/projects/sauspiel/skat-zero/test.gz'
+# "GAMES_FILE": '/Users/heikoschmidle/projects/sauspiel/skat-zero/test.gz'
+"GAMES_FILE": '/home/heiko/Projects/heiko/skat-zero/test.gz'
 "CPUCT": 1
 "MC_SIMULATIONS": 50
 "EPSILON": 0.1
@@ -12,9 +13,9 @@
 "REGULARIZATION": 0.01
 "LEARNING_RATE": 0.01
 "MOMENTUM": 0.9
-"MEMORY_SIZE": 1
+"MEMORY_SIZE": 50
 "TRAINING_LOOPS": 100
-"TRAINING_SIZE": 3
+"TRAINING_SIZE": 1
 "TEST_SIZE": 3
 "BATCH_SIZE": 50
 "EPOCHS": 10
