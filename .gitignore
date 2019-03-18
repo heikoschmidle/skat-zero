@@ -4,3 +4,4 @@ __pycache__
 env/
 *.gz
 .vscode/
+results/
