@@ -33,9 +33,9 @@ def play_training_games(job, train_games, score, players, memory):
         for w in winners:
             score[w] += 1
 
-    # if len(memory.ltmemory) >= job['MEMORY_SIZE']:
-    players[0].replay(memory.ltmemory, job)
-    memory.clear_ltmemory()
+        if len(memory.ltmemory) >= job['MEMORY_SIZE']:
+            players[0].replay(memory.ltmemory, job)
+            memory.clear_ltmemory()
     # import ipdb; ipdb.set_trace()
 
 
