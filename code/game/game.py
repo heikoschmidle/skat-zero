@@ -2,7 +2,7 @@ from code.constants import CARDS, NULL_CARDS, POINTS, SUIT_MAP, sort_cards
 
 class Game:
     def __init__(self, memory, init_game, players):
-        print(init_game)
+        # print(init_game)
         self.memory = memory
         self.players = players
         self.cards = init_game["cards"]
@@ -14,6 +14,7 @@ class Game:
         winner = 0
         track = []
         for trick_number in range(10):
+            print('track', track)
             current_trick = []
             for i in range(3):
                 current_position = winner + i
@@ -133,4 +134,5 @@ def evaluate_game(points, player_position, game_type, memory):
                 move['value'] = -points[move['current_pos']]
         memory.commit_ltmemory()
 
+    print('Game winner', winner, memory)
     return winner

@@ -24,7 +24,8 @@ def read_initial_games(job):
 
 def play_training_games(job, train_games, score, players, memory):
     # import ipdb; ipdb.set_trace()
-    for init_game in random.sample(train_games, job['TRAINING_SIZE']):
+    for idx, init_game in enumerate(random.sample(train_games, job['TRAINING_SIZE'])):
+        print("Training {} of {}".format(idx, job['TRAINING_SIZE']))
         ig = copy.deepcopy(init_game)
         g = Game(memory, ig, players)
         winners = g.play()

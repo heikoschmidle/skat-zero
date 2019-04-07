@@ -37,26 +37,27 @@ def main(job):
 
     score = [0, 0, 0]
     test_score = [0, 0, 0]
+    perform_score = [0, 0, 0]
 
     train_games, test_games = read_initial_games(job)
 
     for step in range(job['TRAINING_LOOPS']):
         players = [current_player, current_player, current_player]
         play_training_games(job, train_games, score, players, memory)
-        rf.write('train, {}, {}, {}'.format(score[0], score[1], score[2]))
+        rf.write('train,{},{},{}\n'.format(score[0], score[1], score[2]))
         print('train', score)
 
         players = [current_player, best_player, random_player]
         play_test_games(job, test_games, test_score, players)
-        rf.write('test, {}, {}, {}'.format(test_score[0], test_score[1], test_score[2]))
-        print('test', score)
+        rf.write('test,{},{},{}\n'.format(test_score[0], test_score[1], test_score[2]))
+        print('test', test_score)
 
         players = [current_player, current_player, best_player]
-        play_test_games(job, test_games, test_score, players)
-        rf.write('perform, {}, {}, {}'.format(test_score[0], test_score[1], test_score[2]))
-        print('perform', score)
+        play_test_games(job, test_games, perform_score, players)
+        rf.write('perform,{},{},{}\n'.format(perform_score[0], perform_score[1], perform_score[2]))
+        print('perform', perform_score)
 
-        if (test_score[0] + test_score[1]) / 2 > test_score[2] * job['SCORING_THRESHOLD']:
+        if (test_score[0] + test_score[1]) / 2 >= test_score[2] * job['SCORING_THRESHOLD']:
             best_player_version = best_player_version + 1
             best_player.model.model.set_weights(current_player.model.model.get_weights())
             best_player.model.write(
@@ -70,6 +71,7 @@ def main(job):
 def debug():
     filename = '/home/heiko/Projects/heiko/skat-zero/code/configuration.yml'
     # filename = '/Users/heikoschmidle/projects/sauspiel/skat-zero/code/configuration.yml'
+    # filename = '/src/configuration.yml'
     with open(filename) as f:
         job = yaml.load(f)
     main(job)

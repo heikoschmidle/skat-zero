@@ -69,9 +69,9 @@ class ModelPlayer:
     def choose_card(self, winner, game_type, current_position, player_pos, cards,
                     current_trick, track, points, tau=0, factor=0.100):
 
-        print('Choosing card...')
-        print(cards)
-        print(player_pos, current_position, current_trick, track)
+        # print('Choosing card...')
+        # print(cards)
+        # print(player_pos, current_position, current_trick, track)
 
         self.start_position = current_position
         opp_one_cards, opp_two_cards = random_estimate(track, cards, current_trick)
@@ -83,7 +83,7 @@ class ModelPlayer:
                 simulation_cards[next(pool)] = opp_two_cards
                 simulation_cards[next(pool)] = opp_one_cards
                 break
-        print(simulation_cards)
+        # print(simulation_cards)
         self.points = points
 
         state = State(winner, game_type, current_position, player_pos, simulation_cards,
@@ -99,8 +99,8 @@ class ModelPlayer:
             self.change_root_mcts(state.id)
 
         for i in range(self.mcts_simulations):
-            if i % 10 == 0:
-                print(i)
+            # if i % 10 == 0:
+            #     print(i)
             success = self.simulate(factor)
             if not success:
                 return False
