@@ -201,7 +201,8 @@ class ModelPlayer:
 
         training_states = np.array([np.reshape(row['state'].state, INPUT_DIMENSION) for row in minibatch])
         training_targets = {
-            'value_head': np.array([row['value'] / 244.0 for row in minibatch]),
+            # 'value_head': np.array([row['value'] / 244.0 for row in minibatch]),
+            'value_head': np.array([row['value'] for row in minibatch]),
             'policy_head': np.array([row['action_values'] for row in minibatch])
         }
 

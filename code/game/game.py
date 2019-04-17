@@ -115,7 +115,7 @@ def evaluate_color_trick(current_trick, trump):
 
 def evaluate_game(points, player_position, game_type, memory):
     idx = [0, 1, 2]
-    winner = None
+    winner = [player_position]
     if game_type == "null":
         if points[player_position] > 0:
             idx.remove(player_position)
@@ -124,14 +124,13 @@ def evaluate_game(points, player_position, game_type, memory):
         if points[player_position] < 61:
             idx.remove(player_position)
             winner = idx
-    winner = [player_position]
 
     if memory:
         for move in memory.stmemory:
             if move['current_pos'] in winner:
-                move['value'] = points[move['current_pos']]
+                move['value'] = 1  # points[move['current_pos']]
             else:
-                move['value'] = -points[move['current_pos']]
+                move['value'] = -1  # points[move['current_pos']]
         memory.commit_ltmemory()
 
     print('Game winner', winner, memory)

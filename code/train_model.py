@@ -47,23 +47,23 @@ def main(job):
         rf.write('train,{},{},{}\n'.format(score[0], score[1], score[2]))
         print('train', score)
 
-        players = [current_player, best_player, random_player]
+        players = [current_player, random_player, current_player]
         play_test_games(job, test_games, test_score, players)
         rf.write('test,{},{},{}\n'.format(test_score[0], test_score[1], test_score[2]))
         print('test', test_score)
 
-        players = [current_player, current_player, best_player]
-        play_test_games(job, test_games, perform_score, players)
-        rf.write('perform,{},{},{}\n'.format(perform_score[0], perform_score[1], perform_score[2]))
-        print('perform', perform_score)
+        # players = [current_player, current_player, best_player]
+        # play_test_games(job, test_games, perform_score, players)
+        # rf.write('perform,{},{},{}\n'.format(perform_score[0], perform_score[1], perform_score[2]))
+        # print('perform', perform_score)
 
-        if (test_score[0] + test_score[1]) / 2 >= test_score[2] * job['SCORING_THRESHOLD']:
-            best_player_version = best_player_version + 1
-            best_player.model.model.set_weights(current_player.model.model.get_weights())
-            best_player.model.write(
-                os.path.join(job["MODEL_DIR"], 'best_model_{}'.format(best_player_version))
-            )
-        current_player.model.model.set_weights(best_player.model.model.get_weights())
+        # if (test_score[0] + test_score[1]) / 2 >= test_score[2] * job['SCORING_THRESHOLD']:
+        #     best_player_version = best_player_version + 1
+        #     best_player.model.model.set_weights(current_player.model.model.get_weights())
+        #     best_player.model.write(
+        #         os.path.join(job["MODEL_DIR"], 'best_model_{}'.format(best_player_version))
+        #     )
+        # current_player.model.model.set_weights(best_player.model.model.get_weights())
 
         # import ipdb; ipdb.set_trace()
 
